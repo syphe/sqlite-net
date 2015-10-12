@@ -19,6 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+
 #if WINDOWS_PHONE && !USE_WP8_NATIVE_SQLITE
 #define USE_CSHARP_SQLITE
 #endif
@@ -162,6 +163,17 @@ namespace SQLite
 		public bool Trace { get; set; }
 
 		public bool StoreDateTimeAsTicks { get; private set; }
+
+#if USE_NEWTONSOFT_JSON
+        public static IList<Newtonsoft.Json.JsonConverter> Converters { get; private set; }
+#endif
+
+        static SQLiteConnection()
+        {
+#if USE_NEWTONSOFT_JSON
+            Converters = new List<Newtonsoft.Json.JsonConverter>();
+#endif
+        }
 
 		/// <summary>
 		/// Constructs a new SQLiteConnection and opens a SQLite database specified by databasePath.
@@ -2030,6 +2042,23 @@ namespace SQLite
             } else if (clrType == typeof(Guid)) {
                 return "varchar(36)";
             } else {
+#if USE_NEWTONSOFT_JSON
+                if (SQLiteConnection.Converters != null)
+                {
+                    foreach (var converter in SQLiteConnection.Converters)
+                    {
+                        if (converter.CanConvert(clrType))
+                        {
+                            int? len = p.MaxStringLength;
+
+                            if (len.HasValue)
+                                return "varchar(" + len.Value + ")";
+
+                            return "varchar";
+                        }
+                    }
+                }
+#endif
 				throw new NotSupportedException ("Don't know about " + clrType);
 			}
 		}
@@ -2331,6 +2360,16 @@ namespace SQLite
                 } else if (value is Guid) {
                     SQLite3.BindText(stmt, index, ((Guid)value).ToString(), 72, NegativePointer);
                 } else {
+#if USE_NEWTONSOFT_JSON
+                        foreach (var converter in SQLiteConnection.Converters)
+                        {
+                            if (converter.CanConvert(value.GetType()))
+                            {
+                                var convertedValue = Newtonsoft.Json.JsonConvert.SerializeObject(value, SQLiteConnection.Converters.ToArray());
+                                SQLite3.BindText(stmt, index, convertedValue, -1, NegativePointer);
+                            }
+                        }
+#endif
                     throw new NotSupportedException("Cannot store type: " + value.GetType());
                 }
 			}
