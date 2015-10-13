@@ -2367,6 +2367,7 @@ namespace SQLite
                             {
                                 var convertedValue = Newtonsoft.Json.JsonConvert.SerializeObject(value, SQLiteConnection.Converters.ToArray());
                                 SQLite3.BindText(stmt, index, convertedValue, -1, NegativePointer);
+                                return;
                             }
                         }
 #endif
@@ -2436,7 +2437,18 @@ namespace SQLite
 				} else if (clrType == typeof(Guid)) {
                   var text = SQLite3.ColumnString(stmt, index);
                   return new Guid(text);
-                } else{
+                } else {
+#if USE_NEWTONSOFT_JSON
+                        foreach (var converter in SQLiteConnection.Converters)
+                        {
+                            if (converter.CanConvert(clrType))
+                            {
+                                var text = SQLite3.ColumnString(stmt, index);
+                                var obj = Newtonsoft.Json.JsonConvert.DeserializeObject(text, clrType, converter);
+                                return obj;
+                            }
+                        }
+#endif
 					throw new NotSupportedException ("Don't know how to read " + clrType);
 				}
 			}
