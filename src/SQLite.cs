@@ -2043,12 +2043,9 @@ namespace SQLite
                 return "varchar(36)";
             } else {
 #if USE_NEWTONSOFT_JSON
-                if (SQLiteConnection.Converters != null)
-                {
-                    foreach (var converter in SQLiteConnection.Converters)
-                    {
-                        if (converter.CanConvert(clrType))
-                        {
+                if (SQLiteConnection.Converters != null) {
+                    foreach (var converter in SQLiteConnection.Converters) {
+                        if (converter.CanConvert(clrType)) {
                             int? len = p.MaxStringLength;
 
                             if (len.HasValue)
@@ -2361,10 +2358,8 @@ namespace SQLite
                     SQLite3.BindText(stmt, index, ((Guid)value).ToString(), 72, NegativePointer);
                 } else {
 #if USE_NEWTONSOFT_JSON
-                        foreach (var converter in SQLiteConnection.Converters)
-                        {
-                            if (converter.CanConvert(value.GetType()))
-                            {
+                        foreach (var converter in SQLiteConnection.Converters) {
+                            if (converter.CanConvert(value.GetType())) {
                                 var convertedValue = Newtonsoft.Json.JsonConvert.SerializeObject(value, SQLiteConnection.Converters.ToArray());
                                 SQLite3.BindText(stmt, index, convertedValue, -1, NegativePointer);
                                 return;
@@ -2439,13 +2434,10 @@ namespace SQLite
                   return new Guid(text);
                 } else {
 #if USE_NEWTONSOFT_JSON
-                        foreach (var converter in SQLiteConnection.Converters)
-                        {
-                            if (converter.CanConvert(clrType))
-                            {
+                        foreach (var converter in SQLiteConnection.Converters) {
+                            if (converter.CanConvert(clrType)) {
                                 var text = SQLite3.ColumnString(stmt, index);
-                                var obj = Newtonsoft.Json.JsonConvert.DeserializeObject(text, clrType, converter);
-                                return obj;
+                                return Newtonsoft.Json.JsonConvert.DeserializeObject(text, clrType, converter);;
                             }
                         }
 #endif
